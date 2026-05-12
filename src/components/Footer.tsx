@@ -323,8 +323,12 @@ export default function Footer() {
       <div className="max-w-[1800px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8">
         {/* Column 1: NISHABDHA */}
         <div className="space-y-6 lg:col-span-1">
-          <Link to="/" className="text-2xl font-heading tracking-widest uppercase">
-            Nishabdha
+          <Link to="/" className="block">
+            <img
+              src="/logopng.png"
+              alt="Nishabdha Logo"
+              className="h-12 w-auto brightness-0 invert opacity-90 hover:opacity-100 transition-opacity"
+            />
           </Link>
           <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
             Where silence becomes art. Premium wall art, acoustic solutions, and studio spaces for modern creators.
@@ -392,13 +396,23 @@ export default function Footer() {
           <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
             Join our inner circle for exclusive drops and studio updates.
           </p>
-          <form className="flex space-x-2" onSubmit={(e) => e.preventDefault()}>
+          <form
+            className="flex space-x-2"
+            action="https://api.staticforms.xyz/submit"
+            method="POST"
+          >
+            <input type="hidden" name="accessKey" value={process.env.STATIC_FORMS_KEY} />
+            <input type="hidden" name="subject" value="Nishabdha Newsletter Subscription" />
+            <input type="hidden" name="replyTo" value="@" />
+            <input type="hidden" name="redirectTo" value={window.location.href} />
             <input
               type="email"
+              name="email"
               placeholder="Email Address"
+              required
               className="bg-secondary/30 border border-border/50 px-4 py-2 text-sm w-full focus:outline-none focus:border-primary/50 transition-colors placeholder:text-muted-foreground/50"
             />
-            <button className="bg-primary text-primary-foreground px-6 py-2 text-xs uppercase tracking-widest font-bold hover:bg-white hover:text-black transition-all duration-300">
+            <button type="submit" className="bg-primary text-primary-foreground px-6 py-2 text-xs uppercase tracking-widest font-bold hover:bg-white hover:text-black transition-all duration-300">
               Join
             </button>
           </form>
@@ -406,9 +420,16 @@ export default function Footer() {
       </div>
 
       <div className="max-w-[1800px] mx-auto mt-20 pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0">
-        <p className="text-[10px] text-muted-foreground tracking-widest uppercase">
-          © 2026 Nishabdha. All rights reserved.
-        </p>
+        <div className="flex items-center gap-4">
+          <img
+            src="/logopng.png"
+            alt="Nishabdha"
+            className="h-6 w-auto brightness-0 invert opacity-60"
+          />
+          <p className="text-[10px] text-muted-foreground tracking-widest uppercase">
+            © 2026 Nishabdha. All rights reserved.
+          </p>
+        </div>
         <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-[10px] text-muted-foreground tracking-[0.2em]">
           <button onClick={() => setActivePolicy("privacy")} className="hover:text-primary transition-colors cursor-pointer">Privacy</button>
           <span className="opacity-20 hidden md:inline">|</span>
@@ -434,6 +455,7 @@ export default function Footer() {
               exit={{ opacity: 0 }}
               onClick={closePolicy}
               className="absolute inset-0 bg-black/85 backdrop-blur-sm cursor-pointer"
+              onWheel={(e) => e.stopPropagation()}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -442,6 +464,7 @@ export default function Footer() {
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="relative w-full max-w-[800px] bg-[#0B0B0B] border border-white/10 rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
               onClick={(e) => e.stopPropagation()}
+              onWheel={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
               aria-labelledby="policy-title"
@@ -458,7 +481,7 @@ export default function Footer() {
                   <X className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </button>
               </div>
-              <div className="p-10 md:p-12 overflow-y-auto scrollbar-hide text-muted-foreground/80 text-sm md:text-base leading-relaxed">
+              <div className="p-10 md:p-12 overflow-y-auto overscroll-contain text-muted-foreground/80 text-sm md:text-base leading-relaxed">
                 {POLICIES[activePolicy].content}
                 {/* Visual filler for high-end look */}
                 <div className="pt-24 opacity-10">

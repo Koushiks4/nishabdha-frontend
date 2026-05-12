@@ -102,25 +102,33 @@ export default function Contact() {
           </div>
 
           <div className="md:col-span-7">
-            <form className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border border border-border">
+            <form
+              action="https://api.staticforms.xyz/submit"
+              method="POST"
+              className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border border border-border"
+            >
+              <input type="hidden" name="accessKey" value={process.env.STATIC_FORMS_KEY} />
+              <input type="hidden" name="subject" value="Contact Form - Nishabdha" />
+              <input type="hidden" name="replyTo" value="$email" />
+              <input type="hidden" name="redirectTo" value={window.location.href} />
               <div className="bg-background p-8">
                 <label className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground block mb-4">Full Name</label>
-                <input className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors" placeholder="Full Name" />
+                <input required name="name" className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors" placeholder="Full Name" />
               </div>
               <div className="bg-background p-8">
                 <label className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground block mb-4">Email Address</label>
-                <input className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors" placeholder="Email Address" />
+                <input required type="email" name="email" className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors" placeholder="Email Address" />
               </div>
               <div className="bg-background p-8 md:col-span-2">
                 <label className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground block mb-4">Subject</label>
-                <input className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors" placeholder="Subject" />
+                <input required name="$subject" className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors" placeholder="Subject" />
               </div>
               <div className="bg-background p-8 md:col-span-2">
                 <label className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground block mb-4">Message</label>
-                <textarea className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors min-h-[200px] resize-none" placeholder="Message" />
+                <textarea required name="message" className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors min-h-[200px] resize-none" placeholder="Message" />
               </div>
               <div className="md:col-span-2">
-                <Button className="w-full rounded-none py-12 bg-primary text-background hover:bg-white transition-all duration-500 uppercase tracking-[0.5em] text-xs font-bold">
+                <Button type="submit" className="w-full rounded-none py-12 bg-primary text-background hover:bg-white transition-all duration-500 uppercase tracking-[0.5em] text-xs font-bold">
                   Dispatch Message
                 </Button>
               </div>

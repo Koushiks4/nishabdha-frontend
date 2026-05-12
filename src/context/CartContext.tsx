@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { cartApi } from '../lib/api';
+import { toast } from '../lib/toast';
 
 export interface CartItem {
   id: string | number;
@@ -189,7 +190,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const addToCart = async (item: CartItem) => {
-    // Update local state immediately
+    const previousCart = [...cart];
+
+    // Optimistically update local state
     setCart((prevCart) => {
       const existingItemIndex = prevCart.findIndex(
         (i) => i.id === item.id && i.size === item.size
@@ -208,9 +211,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!isGuest && item.variantId) {
       try {
         await cartApi.addItem(item.variantId, item.quantity);
-      } catch (error) {
+        toast.success('Added to cart');
+      } catch (error: any) {
+        // Revert on error
+        setCart(previousCart);
+
+        const errorData = error.response?.data?.data;
+        const available = errorData?.available;
+        const errorMessage = available !== undefined
+          ? `Only ${available} item${available !== 1 ? 's' : ''} available in stock`
+          : 'Failed to add item to cart';
+
+        toast.error(errorMessage);
         console.error('Failed to add item to backend cart:', error);
       }
+    } else {
+      toast.success('Added to cart');
     }
   };
 
@@ -232,20 +248,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const updateQuantity = async (id: string | number, size: string, quantity: number) => {
     const item = cart.find((i) => i.id === id && i.size === size);
+    const previousQuantity = item?.quantity || 1;
+    const newQuantity = Math.max(1, quantity);
 
-    // Update local state
+    // Optimistically update local state
     setCart((prevCart) =>
       prevCart.map((i) =>
-        i.id === id && i.size === size ? { ...i, quantity: Math.max(1, quantity) } : i
+        i.id === id && i.size === size ? { ...i, quantity: newQuantity } : i
       )
     );
 
     // If authenticated, sync to backend
     if (!isGuest && item?.variantId) {
       try {
-        await cartApi.updateItem(item.variantId, Math.max(1, quantity));
-      } catch (error) {
-        console.error('Failed to update quantity in backend cart:', error);
+        await cartApi.updateItem(item.variantId, newQuantity);
+      } catch (error: any) {
+        // Revert to previous quantity on error
+        setCart((prevCart) =>
+          prevCart.map((i) =>
+            i.id === id && i.size === size ? { ...i, quantity: previousQuantity } : i
+          )
+        );
+
+        // Extract stock info from error response
+        const errorData = error.response?.data?.data;
+        const available = errorData?.available;
+
+        // Show user-friendly error message
+        const errorMessage = available !== undefined
+          ? `Only ${available} item${available !== 1 ? 's' : ''} available in stock`
+          : 'Failed to update quantity';
+
+        toast.error(errorMessage);
+        console.error('Failed to update quantity:', error);
       }
     }
   };

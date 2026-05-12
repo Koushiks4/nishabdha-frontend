@@ -47,6 +47,7 @@ export interface ProductImage {
   url: string;
   altText: string | null;
   sortOrder: number;
+  mediaType?: 'image' | 'video'; // Optional media type, defaults to 'image'
 }
 
 export interface Product {
@@ -356,7 +357,7 @@ export const cartApi = {
    * Update item quantity
    */
   async updateItem(variantId: string, quantity: number): Promise<void> {
-    const response = await apiClient.put<ApiResponse<void>>(
+    const response = await apiClient.patch<ApiResponse<void>>(
       `/api/cart/items/${variantId}`,
       { quantity }
     );

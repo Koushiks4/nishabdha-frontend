@@ -55,13 +55,15 @@ export default function Home() {
       {/* Hero Section - Geez Style */}
       <section className="relative min-h-screen flex flex-col justify-end px-6 md:px-12 pb-12 md:pb-24 overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <video
+          <motion.video
+            initial={{ scale: 1.1, opacity: 0 }}
+            animate={{ scale: 1, opacity: 0.4 }}
+            transition={{ duration: 2, ease: "easeOut" }}
             autoPlay
             loop
             muted
             playsInline
-            className="w-full h-full object-cover opacity-90"
-            style={{ filter: 'brightness(1.2)' }}
+            className="w-full h-full object-cover"
           >
             <source src="/website-video.webm" type="video/webm" />
             <source src="/website-video.mp4" type="video/mp4" />
@@ -71,13 +73,30 @@ export default function Home() {
               alt="Nishabdha Premium Acoustic Art Hero Background"
               className="w-full h-full object-cover"
             />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+          </motion.video>
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         </div>
 
         <div className="relative z-10 max-w-[1800px] mx-auto w-full">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-            <div className="space-y-4"></div>
+            <div className="space-y-4">
+              <motion.p
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5 }}
+                className="text-[10px] uppercase tracking-[0.5em] text-primary"
+              >
+                Where Silence Becomes Art
+              </motion.p>
+              <motion.h1
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="text-[15vw] md:text-[12vw] leading-[0.85] font-display uppercase tracking-tighter"
+              >
+                Nishabdha<span className="text-outline">.</span>
+              </motion.h1>
+            </div>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -132,13 +151,14 @@ export default function Home() {
             >
               <Link to={`/product/${product.id}`} title={`View details for ${product.name}`} className="block space-y-8">
                 <div className="relative transform transition-transform duration-700 group-hover:scale-[1.02]">
-                  <FramedArt 
-                    src={product.images[0]?.url || 'https://picsum.photos/seed/placeholder/800/1000'} 
-                    alt={`Acoustic Art Piece - ${product.name}`} 
+                  <FramedArt
+                    src={product.images.length > 0 ? product.images.map(img => img.url) : ['https://picsum.photos/seed/placeholder/800/1000']}
+                    alt={`Acoustic Art Piece - ${product.name}`}
                     aspectRatio="aspect-[16/9]"
                     orientation="landscape"
                     className="w-full h-full"
-                    showControls={false}
+                    showControls={product.images.length > 1}
+                    mediaTypes={product.images.map(img => img.mediaType || 'image')}
                   />
                 </div>
                 <div className="flex justify-between items-end border-b border-white/5 pb-6">
@@ -210,9 +230,10 @@ export default function Home() {
             </div>
 
             <div className="relative">
-              <div 
+              <div
                 className="relative w-full flex overflow-x-auto scrollbar-hide snap-x snap-mandatory gap-8 md:gap-16 pb-12 cursor-grab active:cursor-grabbing"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                data-lenis-prevent
               >
                 {landscapePool.map((product, i) => (
                   <motion.div
@@ -225,10 +246,12 @@ export default function Home() {
                   >
                     <Link to={`/product/${product.id}`} title={`View details for ${product.name}`} className="block space-y-6">
                       <FramedArt
-                        src={product.images[0]?.url || 'https://picsum.photos/seed/placeholder/800/600'}
+                        src={product.images.length > 0 ? product.images.map(img => img.url) : ['https://picsum.photos/seed/placeholder/800/600']}
                         alt={`Nishabdha Landscape Acoustic Frame - ${product.name}`}
                         aspectRatio="aspect-[4/3]"
                         orientation="landscape"
+                        showControls={product.images.length > 1}
+                        mediaTypes={product.images.map(img => img.mediaType || 'image')}
                       />
                       <div className="text-center space-y-2">
                         <div className="flex items-center justify-center gap-3 leading-none opacity-60">
@@ -273,9 +296,10 @@ export default function Home() {
             </div>
 
             <div className="relative">
-              <div 
+              <div
                 className="relative w-full flex overflow-x-auto scrollbar-hide snap-x snap-mandatory gap-8 md:gap-12 pb-12 cursor-grab active:cursor-grabbing"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                data-lenis-prevent
               >
                 {portraitPool.map((product, i) => (
                   <motion.div
@@ -287,11 +311,13 @@ export default function Home() {
                     className="flex-shrink-0 w-[65vw] md:w-[35vw] lg:w-[23vw] snap-center group"
                   >
                     <Link to={`/product/${product.id}`} title={`View details for ${product.name}`} className="block space-y-6">
-                      <FramedArt 
-                        src={product.images[0]?.url || 'https://picsum.photos/seed/placeholder/800/1000'} 
-                        alt={`Nishabdha Portrait Acoustic Frame - ${product.name}`} 
+                      <FramedArt
+                        src={product.images.length > 0 ? product.images.map(img => img.url) : ['https://picsum.photos/seed/placeholder/800/1000']}
+                        alt={`Nishabdha Portrait Acoustic Frame - ${product.name}`}
                         aspectRatio="aspect-[3/4]"
                         orientation="portrait"
+                        showControls={product.images.length > 1}
+                        mediaTypes={product.images.map(img => img.mediaType || 'image')}
                       />
                       <div className="text-center space-y-2">
                         <div className="flex items-center justify-center gap-3 leading-none opacity-60">

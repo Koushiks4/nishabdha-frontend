@@ -10,20 +10,33 @@ interface FramedArtProps {
   variant?: "black" | "white" | "wood";
   orientation?: "portrait" | "landscape";
   showControls?: boolean;
+  mediaTypes?: ("image" | "video")[]; // Optional explicit media type specification
 }
 
-export function FramedArt({ 
-  src, 
-  alt, 
-  className = "", 
+export function FramedArt({
+  src,
+  alt,
+  className = "",
   aspectRatio = "aspect-square",
   variant = "black",
   orientation = "portrait",
-  showControls = true
+  showControls = true,
+  mediaTypes
 }: FramedArtProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const images = Array.isArray(src) ? src : [src];
   const hasMultipleImages = images.length > 1;
+
+  // Helper function to detect if media is a video
+  const isVideo = (url: string, index: number): boolean => {
+    // If mediaTypes is provided, use it
+    if (mediaTypes && mediaTypes[index]) {
+      return mediaTypes[index] === 'video';
+    }
+    // Otherwise, detect by file extension
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
+    return videoExtensions.some(ext => url.toLowerCase().endsWith(ext));
+  };
 
   const nextImage = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -86,17 +99,33 @@ export function FramedArt({
           }}
         >
           <AnimatePresence mode="wait">
-            <motion.img
-              key={currentIndex}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1 }}
-              src={images[currentIndex]}
-              alt={`${alt} - view ${currentIndex + 1}`}
-              className="w-full h-full object-cover transition-transform duration-1000 group-hover/frame:scale-110"
-              referrerPolicy="no-referrer"
-            />
+            {isVideo(images[currentIndex], currentIndex) ? (
+              <motion.video
+                key={currentIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1 }}
+                src={images[currentIndex]}
+                className="w-full h-full object-cover transition-transform duration-1000 group-hover/frame:scale-110"
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+            ) : (
+              <motion.img
+                key={currentIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1 }}
+                src={images[currentIndex]}
+                alt={`${alt} - view ${currentIndex + 1}`}
+                className="w-full h-full object-cover transition-transform duration-1000 group-hover/frame:scale-110"
+                referrerPolicy="no-referrer"
+              />
+            )}
           </AnimatePresence>
           
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/5 via-transparent to-white/5 opacity-20 group-hover/frame:opacity-10 transition-opacity duration-1000" />

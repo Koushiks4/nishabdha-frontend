@@ -1,24 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { studioBookingApi, type StudioSpace } from "../lib/api";
 import SEO from "@/components/SEO";
-import { 
-  MessageCircle, 
-  Calendar, 
-  Camera, 
-  Mic, 
-  Layout, 
-  Sparkles, 
-  ArrowRight, 
-  Clock, 
-  Layers, 
-  Cpu, 
-  Video, 
-  Zap, 
-  Smartphone, 
+import {
+  MessageCircle,
+  Calendar,
+  Camera,
+  Mic,
+  Layout,
+  Sparkles,
+  ArrowRight,
+  Clock,
+  Layers,
+  Cpu,
+  Video,
+  Zap,
+  Smartphone,
   Globe,
   Settings,
   Shield,
@@ -103,39 +102,6 @@ export default function Studio() {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isTechSpecsOpen, setIsTechSpecsOpen] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [studioSpaces, setStudioSpaces] = useState<StudioSpace[]>([]);
-  const [loadingSpaces, setLoadingSpaces] = useState(true);
-
-  const [formData, setFormData] = useState({
-    studioType: '',
-    duration: '1 Hour',
-    preferredDate: '',
-    preferredTime: '',
-    fullName: '',
-    phone: '',
-    email: '',
-  });
-
-  // Fetch available studio spaces on mount
-  useEffect(() => {
-    const fetchSpaces = async () => {
-      try {
-        const spaces = await studioBookingApi.getSpaces();
-        setStudioSpaces(spaces);
-        // Set first space as default if available
-        if (spaces.length > 0) {
-          setFormData(prev => ({ ...prev, studioType: spaces[0].name }));
-        }
-      } catch (err) {
-        console.error('Failed to fetch studio spaces:', err);
-      } finally {
-        setLoadingSpaces(false);
-      }
-    };
-    fetchSpaces();
-  }, []);
 
   React.useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -155,39 +121,18 @@ export default function Studio() {
     };
   }, [isTechSpecsOpen]);
 
-  const handleBookingSubmit = async (e: React.FormEvent) => {
+  const handleBookingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsSubmitting(true);
-
-    try {
-      await studioBookingApi.create(formData);
-      setFormSubmitted(true);
-
-      // Reset form and close dialog after success
-      setTimeout(() => {
-        setIsBookingOpen(false);
-        setFormSubmitted(false);
-        setFormData({
-          studioType: studioSpaces.length > 0 ? studioSpaces[0].name : '',
-          duration: '1 Hour',
-          preferredDate: '',
-          preferredTime: '',
-          fullName: '',
-          phone: '',
-          email: '',
-        });
-      }, 2500);
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit booking. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    setFormSubmitted(true);
+    setTimeout(() => {
+      setIsBookingOpen(false);
+      setFormSubmitted(false);
+    }, 2000);
   };
 
   return (
     <div className="bg-background text-foreground selection:bg-primary/30">
-      <SEO 
+      <SEO
         title="Creative Studio & Podcast Facility"
         description="Book Nishabdha's professional creative studio in Bangalore. High-fidelity audio recording, green screen facilities, and cinematic photography spaces."
         keywords="podcast studio Bangalore, green screen studio, photoshoot space, audio recording studio, creative atelier"
@@ -204,7 +149,7 @@ export default function Studio() {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-transparent" />
         </div>
-        
+
         <div className="relative z-10 max-w-[1800px] mx-auto w-full">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -243,42 +188,19 @@ export default function Studio() {
                       </div>
                     ) : (
                       <form onSubmit={handleBookingSubmit} className="space-y-6">
-                        {error && (
-                          <div className="p-4 bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-                            {error}
-                          </div>
-                        )}
-
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Space</label>
-                            <select
-                              className="flex h-10 w-full bg-secondary/50 border-none px-3 py-2 text-sm outline-none cursor-pointer"
-                              value={formData.studioType}
-                              onChange={(e) => setFormData({ ...formData, studioType: e.target.value })}
-                              disabled={loadingSpaces}
-                              required
-                            >
-                              {loadingSpaces ? (
-                                <option>Loading spaces...</option>
-                              ) : studioSpaces.length === 0 ? (
-                                <option>No spaces available</option>
-                              ) : (
-                                studioSpaces.map((space) => (
-                                  <option key={space.id} value={space.name}>
-                                    {space.name}
-                                  </option>
-                                ))
-                              )}
+                            <select className="flex h-10 w-full bg-secondary/50 border-none px-3 py-2 text-sm outline-none cursor-pointer">
+                              <option>Podcast Studio</option>
+                              <option>Green Screen</option>
+                              <option>Photoshoot Room</option>
+                              <option>Dubbing Studio</option>
                             </select>
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Duration</label>
-                            <select
-                              className="flex h-10 w-full bg-secondary/50 border-none px-3 py-2 text-sm outline-none cursor-pointer"
-                              value={formData.duration}
-                              onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                            >
+                            <select className="flex h-10 w-full bg-secondary/50 border-none px-3 py-2 text-sm outline-none cursor-pointer">
                               <option>1 Hour</option>
                               <option>2 Hours</option>
                               <option>4 Hours</option>
@@ -289,63 +211,29 @@ export default function Studio() {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Date</label>
-                            <Input
-                              type="date"
-                              className="bg-secondary/50 border-none rounded-none"
-                              value={formData.preferredDate}
-                              onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
-                              required
-                            />
+                            <Input type="date" className="bg-secondary/50 border-none rounded-none" required />
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Preferred Time</label>
-                            <Input
-                              type="time"
-                              className="bg-secondary/50 border-none rounded-none"
-                              value={formData.preferredTime}
-                              onChange={(e) => setFormData({ ...formData, preferredTime: e.target.value })}
-                            />
+                            <Input type="time" className="bg-secondary/50 border-none rounded-none" required />
                           </div>
                         </div>
                         <div className="space-y-2">
                           <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Full Name</label>
-                          <Input
-                            placeholder="Enter your name"
-                            className="bg-secondary/50 border-none rounded-none"
-                            value={formData.fullName}
-                            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                            required
-                          />
+                          <Input placeholder="Enter your name" className="bg-secondary/50 border-none rounded-none" required />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Phone</label>
-                            <Input
-                              placeholder="+91"
-                              className="bg-secondary/50 border-none rounded-none"
-                              value={formData.phone}
-                              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                              required
-                            />
+                            <Input placeholder="+91" className="bg-secondary/50 border-none rounded-none" required />
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Email</label>
-                            <Input
-                              type="email"
-                              placeholder="Email"
-                              className="bg-secondary/50 border-none rounded-none"
-                              value={formData.email}
-                              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                              required
-                            />
+                            <Input type="email" placeholder="Email" className="bg-secondary/50 border-none rounded-none" required />
                           </div>
                         </div>
-                        <Button
-                          type="submit"
-                          disabled={isSubmitting}
-                          className="w-full rounded-none py-8 bg-primary text-background hover:bg-white transition-all duration-500 uppercase tracking-[0.4em] text-xs font-bold disabled:opacity-50"
-                        >
-                          {isSubmitting ? 'Submitting...' : 'Confirm Booking'}
+                        <Button type="submit" className="w-full rounded-none py-8 bg-primary text-background hover:bg-white transition-all duration-500 uppercase tracking-[0.4em] text-xs font-bold">
+                          Confirm Booking
                         </Button>
                       </form>
                     )}
@@ -361,61 +249,6 @@ export default function Studio() {
           <div className="w-[1px] h-full bg-white" />
           <div className="hidden md:block w-[1px] h-full bg-white" />
           <div className="w-[1px] h-full bg-white" />
-        </div>
-      </section>
-
-      {/* Studio Gallery Section */}
-      <section className="py-24 md:py-32 px-6 md:px-12 border-b border-border bg-black/20">
-        <div className="max-w-[1800px] mx-auto space-y-16">
-          <div className="text-center space-y-6">
-            <p className="text-[10px] uppercase tracking-[0.5em] text-primary">Behind The Scenes</p>
-            <h2 className="text-5xl md:text-7xl font-display uppercase tracking-tighter leading-none">
-              Our <span className="text-outline">Facilities</span>
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { src: '/studio-images/IMG_7318.jpeg', alt: 'Podcast Studio Setup' },
-              { src: '/studio-images/IMG_7338.jpeg', alt: 'Green Screen Studio' },
-              { src: '/studio-images/IMG_7327.jpeg', alt: 'Photoshoot Area' },
-              { src: '/studio-images/IMG_7316.jpeg', alt: 'Makeup Room' },
-              { src: '/studio-images/IMG_7341.jpeg', alt: 'Dubbing & Voice Recording Room' },
-            ].map((image, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className={`relative overflow-hidden group ${idx === 4 ? 'md:col-span-2 lg:col-span-1' : ''}`}
-              >
-                <div className="aspect-[4/3] bg-secondary/20 overflow-hidden">
-                  <img
-                    src={image.src}
-                    alt={image.alt}
-                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                    <p className="text-xs uppercase tracking-[0.3em] text-white">{image.alt}</p>
-                  </div>
-                </div>
-                <div className="absolute top-4 right-4 text-4xl font-display text-white/10 group-hover:text-primary/20 transition-colors">
-                  0{idx + 1}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="text-center pt-8">
-            <Button
-              onClick={() => setIsBookingOpen(true)}
-              className="rounded-none px-12 py-6 uppercase tracking-[0.3em] text-xs bg-primary text-background hover:bg-white transition-all duration-500"
-            >
-              Book A Session
-            </Button>
-          </div>
         </div>
       </section>
 
@@ -460,15 +293,15 @@ export default function Studio() {
                   ))}
                 </div>
                 <div className="pt-6 flex gap-8 items-center">
-                  <Button 
+                  <Button
                     onClick={() => setIsBookingOpen(true)}
-                    variant="link" 
+                    variant="link"
                     className="p-0 h-auto text-xs uppercase tracking-[0.3em] text-primary hover:text-white transition-colors"
                   >
                     Book Now
                   </Button>
-                  
-                  <button 
+
+                  <button
                     onClick={() => setIsTechSpecsOpen(true)}
                     className="flex items-center gap-4 group cursor-pointer outline-none bg-transparent border-none"
                   >
@@ -492,17 +325,19 @@ export default function Studio() {
               exit={{ opacity: 0 }}
               onClick={() => setIsTechSpecsOpen(false)}
               className="absolute inset-0 bg-background/85 backdrop-blur-md cursor-pointer"
+              onWheel={(e) => e.stopPropagation()}
             />
-            
+
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 20 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="relative w-full max-w-[1000px] max-h-[85vh] bg-[#0a0a0a] border border-white/10 shadow-2xl overflow-y-auto scrollbar-hide z-[10001]"
+              className="relative w-full max-w-[1000px] max-h-[85vh] bg-[#0a0a0a] border border-white/10 shadow-2xl overflow-y-auto z-[10001] overscroll-contain"
               onClick={(e) => e.stopPropagation()}
+              onWheel={(e) => e.stopPropagation()}
             >
-              <button 
+              <button
                 onClick={() => setIsTechSpecsOpen(false)}
                 className="absolute top-8 right-8 text-muted-foreground hover:text-primary transition-colors z-[10002]"
                 title="Close"
@@ -581,11 +416,11 @@ export default function Studio() {
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   onClick={() => {
                     setIsTechSpecsOpen(false);
                     setIsBookingOpen(true);
-                  }} 
+                  }}
                   className="w-full h-16 rounded-none bg-primary text-background hover:bg-white transition-all duration-500 uppercase tracking-[0.4em] text-xs font-bold"
                 >
                   Reserve This Setup
