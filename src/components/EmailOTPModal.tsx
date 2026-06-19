@@ -318,10 +318,10 @@ export function EmailOTPModal({ isOpen, onClose, onSuccess }: EmailOTPModalProps
                               id="otp"
                               type="text"
                               inputMode="numeric"
-                              placeholder="00000000"
+                              placeholder="000000"
                               value={otp}
                               onChange={(e) => {
-                                const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                                const value = e.target.value.replace(/\D/g, '').slice(0, 6);
                                 setOtp(value);
                                 setError('');
                               }}
@@ -329,7 +329,7 @@ export function EmailOTPModal({ isOpen, onClose, onSuccess }: EmailOTPModalProps
                               onBlur={() => setIsFocused(false)}
                               disabled={isLoading}
                               className="relative bg-secondary/50 border-border h-14 px-4 text-foreground placeholder:text-muted-foreground/40 focus:border-primary/50 transition-colors text-center text-2xl tracking-[0.5em] font-display"
-                              maxLength={8}
+                              maxLength={6}
                               required
                               autoFocus
                             />
@@ -355,7 +355,7 @@ export function EmailOTPModal({ isOpen, onClose, onSuccess }: EmailOTPModalProps
                         {/* Verify Button */}
                         <Button
                           type="submit"
-                          disabled={isLoading || otp.length !== 8}
+                          disabled={isLoading || otp.length !== 6}
                           className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
                         >
                           {/* Shimmer effect */}
