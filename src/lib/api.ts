@@ -508,17 +508,40 @@ export const studioBookingApi = {
   },
 
   /**
+   * Get booked time slots for a studio space on a given date (YYYY-MM-DD).
+   * Returns the list of "HH:MM" times that are already taken.
+   */
+  async getAvailability(studioType: string, date: string): Promise<string[]> {
+    try {
+      const response = await apiClient.get<ApiResponse<{ bookedTimes: string[] }>>(
+        '/api/studio-bookings/availability',
+        { params: { studioType, date } }
+      );
+      if (!response.data.success || !response.data.data) return [];
+      return response.data.data.bookedTimes;
+    } catch {
+      // Availability is a best-effort hint; the backend still enforces uniqueness on submit.
+      return [];
+    }
+  },
+
+  /**
    * Create studio booking
    */
   async create(data: StudioBookingData): Promise<{ booking: any; message: string }> {
-    const response = await apiClient.post<ApiResponse<{ booking: any; message: string }>>(
-      '/api/studio-bookings',
-      data
-    );
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to create booking');
+    try {
+      const response = await apiClient.post<ApiResponse<{ booking: any; message: string }>>(
+        '/api/studio-bookings',
+        data
+      );
+      if (!response.data.success || !response.data.data) {
+        throw new Error(response.data.error || 'Failed to create booking');
+      }
+      return response.data.data;
+    } catch (err: any) {
+      const serverMsg = err?.response?.data?.message || err?.response?.data?.error;
+      throw new Error(serverMsg || err?.message || 'Failed to create booking');
     }
-    return response.data.data;
   },
 };
 

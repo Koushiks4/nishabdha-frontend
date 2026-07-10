@@ -65,11 +65,11 @@ export default function Contact() {
               <div className="space-y-8">
                 <a href="mailto:info@nishabdha.com" className="block group">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-2">Email</p>
-                  <p className="text-2xl md:text-3xl font-display uppercase tracking-tighter group-hover:text-primary transition-colors">info@nishabdha.com</p>
+                  <p className="text-lg md:text-xl font-heading tracking-normal group-hover:text-primary transition-colors">info@nishabdha.com</p>
                 </a>
                 <a href="tel:+918762557954" className="block group">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-2">Phone</p>
-                  <p className="text-2xl md:text-3xl font-display uppercase tracking-tighter group-hover:text-primary transition-colors">+91 87625 57954</p>
+                  <p className="text-lg md:text-xl font-heading tracking-normal group-hover:text-primary transition-colors">+91 87625 57954</p>
                 </a>
               </div>
             </div>
@@ -79,7 +79,7 @@ export default function Contact() {
               <div className="space-y-8">
                 <div className="block">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-2">Studio Address</p>
-                  <p className="text-2xl md:text-3xl font-display uppercase tracking-tighter leading-tight">
+                  <p className="text-lg md:text-xl font-heading tracking-normal leading-relaxed">
                     6, 4TH MAIN ROAD, <br />
                     AREHALLI, UTTERAHALLI HOBLI, <br />
                     BENGALURU, KA 560061

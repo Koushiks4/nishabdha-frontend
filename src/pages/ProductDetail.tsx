@@ -72,8 +72,11 @@ export default function ProductDetail() {
     );
   }
 
+  const isVariantPurchasable = (v: ProductVariant | null): v is ProductVariant =>
+    !!v && v.isActive && v.stockQuantity > 0;
+
   const handleAddToCart = () => {
-    if (!selectedVariant) return;
+    if (!isVariantPurchasable(selectedVariant)) return;
 
     const price = selectedVariant.price || product.basePrice;
     addToCart({
@@ -82,15 +85,15 @@ export default function ProductDetail() {
       name: product.name,
       price: `₹${price.toLocaleString('en-IN')}`,
       size: selectedVariant.name,
-      image: product.images[0]?.url || product.images[0] || 'https://picsum.photos/seed/placeholder/800/1000',
-      quantity: quantity
+      image: product.images[0]?.url || 'https://picsum.photos/seed/placeholder/800/1000',
+      quantity: Math.min(quantity, selectedVariant.stockQuantity)
     });
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
   };
 
   const handleBuyNow = async () => {
-    if (!selectedVariant) return;
+    if (!isVariantPurchasable(selectedVariant)) return;
 
     // Add to cart first
     const price = selectedVariant.price || product.basePrice;
@@ -100,8 +103,8 @@ export default function ProductDetail() {
       name: product.name,
       price: `₹${price.toLocaleString('en-IN')}`,
       size: selectedVariant.name,
-      image: product.images[0]?.url || product.images[0] || 'https://picsum.photos/seed/placeholder/800/1000',
-      quantity: quantity
+      image: product.images[0]?.url || 'https://picsum.photos/seed/placeholder/800/1000',
+      quantity: Math.min(quantity, selectedVariant.stockQuantity)
     });
 
     // If not authenticated, show OTP modal
@@ -138,6 +141,18 @@ export default function ProductDetail() {
 
   const currentPrice = selectedVariant?.price || product.basePrice;
   const formatPrice = (price: number) => `₹${price.toLocaleString('en-IN')}`;
+
+  // Availability
+  const hasVariants = !!product.variants && product.variants.length > 0;
+  const hasAvailableVariant = !!product.variants?.some((v) => v.isActive && v.stockQuantity > 0);
+  const isPurchasable = isVariantPurchasable(selectedVariant);
+  const availableStock = isPurchasable ? selectedVariant.stockQuantity : 0;
+  const maxQuantity = Math.max(1, availableStock);
+  const unavailableReason = !hasVariants
+    ? 'Currently unavailable'
+    : !hasAvailableVariant
+    ? 'Sold out'
+    : 'This variant is sold out';
 
   return (
     <div className="pt-32 pb-24 px-6 bg-background min-h-screen">
@@ -210,6 +225,18 @@ export default function ProductDetail() {
               </div>
               <h1 className="text-4xl md:text-5xl font-heading uppercase tracking-widest mb-4">{product.name}</h1>
               <p className="text-2xl font-medium text-primary">{formatPrice(currentPrice)}</p>
+              {/* Stock status */}
+              {isPurchasable ? (
+                availableStock <= 5 ? (
+                  <p className="text-[11px] uppercase tracking-widest text-amber-500 mt-3">
+                    Only {availableStock} left in stock
+                  </p>
+                ) : (
+                  <p className="text-[11px] uppercase tracking-widest text-green-600 mt-3">In Stock</p>
+                )
+              ) : (
+                <p className="text-[11px] uppercase tracking-widest text-destructive mt-3">{unavailableReason}</p>
+              )}
             </div>
 
             <p className="text-muted-foreground font-light leading-relaxed">
@@ -242,7 +269,7 @@ export default function ProductDetail() {
                     {product.variants.map((variant) => (
                       <button
                         key={variant.id}
-                        onClick={() => setSelectedVariant(variant)}
+                        onClick={() => { setSelectedVariant(variant); setQuantity(1); }}
                         disabled={!variant.isActive || variant.stockQuantity === 0}
                         className={`px-6 py-3 text-xs uppercase tracking-widest border transition-all ${
                           selectedVariant?.id === variant.id
@@ -268,30 +295,34 @@ export default function ProductDetail() {
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-              <div className="flex items-center border border-border h-14 w-full sm:w-auto">
-                <button 
+              <div className={`flex items-center border border-border h-14 w-full sm:w-auto ${!isPurchasable ? 'opacity-50' : ''}`}>
+                <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-4 hover:text-primary transition-colors"
+                  disabled={!isPurchasable || quantity <= 1}
+                  className="px-4 hover:text-primary transition-colors disabled:cursor-not-allowed disabled:hover:text-current"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
                 <span className="w-12 text-center font-medium">{quantity}</span>
-                <button 
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="px-4 hover:text-primary transition-colors"
+                <button
+                  onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
+                  disabled={!isPurchasable || quantity >= maxQuantity}
+                  className="px-4 hover:text-primary transition-colors disabled:cursor-not-allowed disabled:hover:text-current"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
-              <Button 
+              <Button
                 onClick={handleAddToCart}
-                disabled={isAdded}
+                disabled={isAdded || !isPurchasable}
                 className={`flex-1 h-14 rounded-none uppercase tracking-widest text-sm font-bold w-full transition-all duration-500 ${
                   isAdded ? "bg-green-600 hover:bg-green-600 text-white" : "bg-primary text-primary-foreground hover:bg-white"
                 }`}
               >
                 {isAdded ? (
                   <span className="flex items-center gap-2"><Check className="w-4 h-4" /> Added</span>
+                ) : !isPurchasable ? (
+                  <span className="flex items-center gap-2"><ShoppingCart className="w-4 h-4" /> {unavailableReason}</span>
                 ) : (
                   <span className="flex items-center gap-2"><ShoppingCart className="w-4 h-4" /> Add to Bag</span>
                 )}
@@ -299,10 +330,10 @@ export default function ProductDetail() {
             </div>
             <Button
               onClick={handleBuyNow}
-              disabled={!selectedVariant || selectedVariant.stockQuantity === 0}
-              className="w-full h-14 bg-white text-black hover:bg-primary rounded-none uppercase tracking-widest text-sm font-bold"
+              disabled={!isPurchasable}
+              className="w-full h-14 bg-white text-black hover:bg-primary rounded-none uppercase tracking-widest text-sm font-bold disabled:opacity-50"
             >
-              Buy Now
+              {isPurchasable ? 'Buy Now' : unavailableReason}
             </Button>
 
             <Tabs defaultValue="description" className="pt-8">

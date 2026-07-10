@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import SEO from "@/components/SEO";
+import { studioBookingApi } from "../lib/api";
 import {
   MessageCircle,
   Calendar,
@@ -16,13 +17,12 @@ import {
   Layers,
   Cpu,
   Video,
-  Zap,
+  Check,
   Smartphone,
   Globe,
   Settings,
   Shield,
   Lightbulb,
-  Music,
   User,
   Phone,
   Mail,
@@ -37,6 +37,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 const studioSpaces = [
   {
@@ -62,14 +63,6 @@ const studioSpaces = [
     features: ["Multiple Backdrops", "Natural Light", "Lighting Rigs"],
     image: "https://picsum.photos/seed/studio-photo/1200/800?grayscale",
     icon: Camera,
-  },
-  {
-    id: "dubbing",
-    title: "Dubbing Studio",
-    description: "Premium acoustic isolation and high-end signal chain for voice-overs, dubbing, and foley work.",
-    features: ["Signal Chain", "Acoustic Isolation", "Foley Ready"],
-    image: "https://picsum.photos/seed/studio-audio/1200/800?grayscale",
-    icon: Music,
   },
 ];
 
@@ -101,7 +94,29 @@ const podcastPackages = [
 export default function Studio() {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isTechSpecsOpen, setIsTechSpecsOpen] = useState(false);
-  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookedSpace, setBookedSpace] = useState("Studio Space");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Booking dialog form
+  const [bookingSpace, setBookingSpace] = useState("Podcast Studio");
+  const [bookingDuration, setBookingDuration] = useState("1 Hour");
+  const [bookingDateTime, setBookingDateTime] = useState<Date | null>(null);
+  const [bookingName, setBookingName] = useState("");
+  const [bookingPhone, setBookingPhone] = useState("");
+  const [bookingEmail, setBookingEmail] = useState("");
+  const [bookingDay, setBookingDay] = useState<Date | null>(null);
+  const [bookingBookedTimes, setBookingBookedTimes] = useState<string[]>([]);
+
+  // Footer enquiry form
+  const [enquiryService, setEnquiryService] = useState("Podcast Studio");
+  const [enquiryDateTime, setEnquiryDateTime] = useState<Date | null>(null);
+  const [enquiryName, setEnquiryName] = useState("");
+  const [enquiryPhone, setEnquiryPhone] = useState("");
+  const [enquiryEmail, setEnquiryEmail] = useState("");
+  const [enquiryDay, setEnquiryDay] = useState<Date | null>(null);
+  const [enquiryBookedTimes, setEnquiryBookedTimes] = useState<string[]>([]);
 
   React.useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -121,13 +136,116 @@ export default function Studio() {
     };
   }, [isTechSpecsOpen]);
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormSubmitted(true);
-    setTimeout(() => {
+  const formatTime = (d: Date) =>
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  // Local calendar day as YYYY-MM-DD (no timezone drift)
+  const toDateKey = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  // Fetch booked slots for the booking dialog whenever space/day changes
+  const bookingDayKey = bookingDay ? toDateKey(bookingDay) : null;
+  useEffect(() => {
+    if (!bookingDayKey) {
+      setBookingBookedTimes([]);
+      return;
+    }
+    let active = true;
+    studioBookingApi
+      .getAvailability(bookingSpace, bookingDayKey)
+      .then((times) => active && setBookingBookedTimes(times));
+    return () => {
+      active = false;
+    };
+  }, [bookingSpace, bookingDayKey]);
+
+  // Fetch booked slots for the footer enquiry form whenever space/day changes
+  const enquiryDayKey = enquiryDay ? toDateKey(enquiryDay) : null;
+  useEffect(() => {
+    if (!enquiryDayKey) {
+      setEnquiryBookedTimes([]);
+      return;
+    }
+    let active = true;
+    studioBookingApi
+      .getAvailability(enquiryService, enquiryDayKey)
+      .then((times) => active && setEnquiryBookedTimes(times));
+    return () => {
+      active = false;
+    };
+  }, [enquiryService, enquiryDayKey]);
+
+  const submitBooking = async (
+    payload: {
+      studioType: string;
+      duration: string;
+      fullName: string;
+      phone: string;
+      email: string;
+      dateTime: Date | null;
+    }
+  ) => {
+    if (!payload.dateTime) {
+      setSubmitError("Please select a date and time.");
+      return;
+    }
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await studioBookingApi.create({
+        studioType: payload.studioType,
+        duration: payload.duration,
+        preferredDate: toDateKey(payload.dateTime),
+        preferredTime: formatTime(payload.dateTime),
+        fullName: payload.fullName,
+        phone: payload.phone,
+        email: payload.email,
+      });
       setIsBookingOpen(false);
-      setFormSubmitted(false);
-    }, 2000);
+      setBookedSpace(payload.studioType);
+      setBookingSuccess(true);
+      // Reset both forms
+      setBookingName("");
+      setBookingPhone("");
+      setBookingEmail("");
+      setBookingDateTime(null);
+      setBookingDay(null);
+      setEnquiryName("");
+      setEnquiryPhone("");
+      setEnquiryEmail("");
+      setEnquiryDateTime(null);
+      setEnquiryDay(null);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to submit booking. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDialogSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitBooking({
+      studioType: bookingSpace,
+      duration: bookingDuration,
+      fullName: bookingName,
+      phone: bookingPhone,
+      email: bookingEmail,
+      dateTime: bookingDateTime,
+    });
+  };
+
+  const handleEnquirySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitBooking({
+      studioType: enquiryService,
+      duration: "Flexible",
+      fullName: enquiryName,
+      phone: enquiryPhone,
+      email: enquiryEmail,
+      dateTime: enquiryDateTime,
+    });
   };
 
   return (
@@ -165,7 +283,7 @@ export default function Studio() {
               A professional ecosystem designed for the modern creator. From high-fidelity audio to cinematic visual production.
             </p>
             <div className="pt-12">
-              <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
+              <Dialog open={isBookingOpen} onOpenChange={(o) => { setIsBookingOpen(o); if (o) setSubmitError(null); }}>
                 <DialogTrigger
                   render={
                     <button className="rounded-none px-12 py-8 uppercase tracking-[0.3em] text-xs bg-primary text-background hover:bg-white transition-all duration-500 cursor-pointer">
@@ -180,27 +298,27 @@ export default function Studio() {
                       <DialogDescription className="text-xs uppercase tracking-widest text-muted-foreground">FACILITATING GLOBAL CREATIVES</DialogDescription>
                     </DialogHeader>
 
-                    {formSubmitted ? (
-                      <div className="py-12 text-center space-y-4 animate-in fade-in zoom-in">
-                        <Zap className="w-12 h-12 text-primary mx-auto" />
-                        <p className="text-sm uppercase tracking-[0.3em]">Request Dispatched</p>
-                        <p className="text-xs text-muted-foreground italic">Facilitating Technical Alignment...</p>
-                      </div>
-                    ) : (
-                      <form onSubmit={handleBookingSubmit} className="space-y-6">
+                    <form onSubmit={handleDialogSubmit} className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Space</label>
-                            <select className="flex h-10 w-full bg-secondary/50 border-none px-3 py-2 text-sm outline-none cursor-pointer">
+                            <select
+                              value={bookingSpace}
+                              onChange={(e) => setBookingSpace(e.target.value)}
+                              className="flex h-10 w-full bg-secondary/50 border-none px-3 py-2 text-sm outline-none cursor-pointer"
+                            >
                               <option>Podcast Studio</option>
                               <option>Green Screen</option>
                               <option>Photoshoot Room</option>
-                              <option>Dubbing Studio</option>
                             </select>
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Duration</label>
-                            <select className="flex h-10 w-full bg-secondary/50 border-none px-3 py-2 text-sm outline-none cursor-pointer">
+                            <select
+                              value={bookingDuration}
+                              onChange={(e) => setBookingDuration(e.target.value)}
+                              className="flex h-10 w-full bg-secondary/50 border-none px-3 py-2 text-sm outline-none cursor-pointer"
+                            >
                               <option>1 Hour</option>
                               <option>2 Hours</option>
                               <option>4 Hours</option>
@@ -208,36 +326,66 @@ export default function Studio() {
                             </select>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Date</label>
-                            <Input type="date" className="bg-secondary/50 border-none rounded-none" required />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Preferred Time</label>
-                            <Input type="time" className="bg-secondary/50 border-none rounded-none" required />
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Date &amp; Time</label>
+                          <div className="bg-secondary/50 px-3 py-2.5">
+                            <DateTimePicker
+                              value={bookingDateTime}
+                              onChange={setBookingDateTime}
+                              onSelectedDayChange={setBookingDay}
+                              bookedTimes={bookingBookedTimes}
+                              name="datetime"
+                            />
                           </div>
                         </div>
                         <div className="space-y-2">
                           <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Full Name</label>
-                          <Input placeholder="Enter your name" className="bg-secondary/50 border-none rounded-none" required />
+                          <Input
+                            value={bookingName}
+                            onChange={(e) => setBookingName(e.target.value)}
+                            placeholder="Enter your name"
+                            className="bg-secondary/50 border-none rounded-none"
+                            required
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Phone</label>
-                            <Input placeholder="+91" className="bg-secondary/50 border-none rounded-none" required />
+                            <Input
+                              type="tel"
+                              inputMode="numeric"
+                              pattern="[0-9]{10}"
+                              maxLength={10}
+                              minLength={10}
+                              title="Enter a 10-digit phone number"
+                              value={bookingPhone}
+                              onChange={(e) => setBookingPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                              placeholder="10-digit number"
+                              className="bg-secondary/50 border-none rounded-none"
+                              required
+                            />
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Email</label>
-                            <Input type="email" placeholder="Email" className="bg-secondary/50 border-none rounded-none" required />
+                            <Input
+                              type="email"
+                              value={bookingEmail}
+                              onChange={(e) => setBookingEmail(e.target.value)}
+                              placeholder="Email"
+                              className="bg-secondary/50 border-none rounded-none"
+                              required
+                            />
                           </div>
                         </div>
-                        <Button type="submit" className="w-full rounded-none py-8 bg-primary text-background hover:bg-white transition-all duration-500 uppercase tracking-[0.4em] text-xs font-bold">
-                          Confirm Booking
+                        {submitError && (
+                          <p className="text-xs text-red-400 tracking-wide">{submitError}</p>
+                        )}
+                        <Button type="submit" disabled={submitting} className="w-full rounded-none py-8 bg-primary text-background hover:bg-white transition-all duration-500 uppercase tracking-[0.4em] text-xs font-bold disabled:opacity-50">
+                          {submitting ? "Submitting..." : "Confirm Booking"}
                         </Button>
                       </form>
-                    )}
                   </div>
+
                 </DialogContent>
               </Dialog>
             </div>
@@ -363,14 +511,6 @@ export default function Studio() {
                     </ul>
                   </div>
                   <div className="space-y-6">
-                    <h4 className="text-sm uppercase tracking-[0.3em] text-primary border-b border-white/5 pb-4">Dubbing / Voice</h4>
-                    <ul className="space-y-3 text-[11px] font-light text-muted-foreground uppercase tracking-[0.2em] leading-relaxed">
-                      <li>• Acoustic treated setup</li>
-                      <li>• High-fidelity isolation</li>
-                      <li>• Studio mic recording signal chain</li>
-                    </ul>
-                  </div>
-                  <div className="space-y-6">
                     <h4 className="text-sm uppercase tracking-[0.3em] text-primary border-b border-white/5 pb-4">Photoshoot Area</h4>
                     <ul className="space-y-3 text-[11px] font-light text-muted-foreground uppercase tracking-[0.2em] leading-relaxed">
                       <li>• Professional Lighting Rigs (500W Dim)</li>
@@ -430,6 +570,34 @@ export default function Studio() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Booking Success Modal */}
+      <Dialog open={bookingSuccess} onOpenChange={setBookingSuccess}>
+        <DialogContent className="sm:max-w-[460px] bg-background border-border p-0 overflow-hidden">
+          <div className="p-10 md:p-12 text-center space-y-8">
+            <div className="mx-auto w-16 h-16 rounded-full border border-primary/40 flex items-center justify-center">
+              <Check className="w-8 h-8 text-primary" />
+            </div>
+            <DialogHeader className="space-y-4">
+              <DialogTitle className="text-3xl md:text-4xl font-display uppercase tracking-tighter leading-none">
+                Space Booked
+              </DialogTitle>
+              <DialogDescription className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+                {bookedSpace} · Reservation Confirmed
+              </DialogDescription>
+            </DialogHeader>
+            <p className="text-sm font-light text-muted-foreground leading-relaxed">
+              Your studio space is booked. Our technical director will reach out shortly to confirm the finer details of your session.
+            </p>
+            <Button
+              onClick={() => setBookingSuccess(false)}
+              className="w-full rounded-none py-8 bg-primary text-background hover:bg-white transition-all duration-500 uppercase tracking-[0.4em] text-xs font-bold"
+            >
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Production Packages */}
       <section className="py-24 md:py-48 px-6 md:px-12 bg-secondary/5 border-b border-border">
@@ -577,32 +745,73 @@ export default function Studio() {
           </div>
 
           <div className="md:col-span-7">
-            <form onSubmit={handleBookingSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border border border-border">
+            <form onSubmit={handleEnquirySubmit} className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border border border-border">
               <div className="bg-background p-8">
                 <label className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground block mb-4">Full Name</label>
-                <input required className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors" placeholder="Full Name" />
+                <input
+                  required
+                  value={enquiryName}
+                  onChange={(e) => setEnquiryName(e.target.value)}
+                  className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors"
+                  placeholder="Full Name"
+                />
               </div>
               <div className="bg-background p-8">
                 <label className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground block mb-4">Email Address</label>
-                <input required type="email" className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors" placeholder="Email Address" />
+                <input
+                  required
+                  type="email"
+                  value={enquiryEmail}
+                  onChange={(e) => setEnquiryEmail(e.target.value)}
+                  className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors"
+                  placeholder="Email Address"
+                />
               </div>
               <div className="bg-background p-8">
-                <label className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground block mb-4">Service</label>
-                <select className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors appearance-none cursor-pointer">
-                  <option className="bg-background">Podcast Session</option>
+                <label className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground block mb-4">Phone</label>
+                <input
+                  required
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
+                  minLength={10}
+                  title="Enter a 10-digit phone number"
+                  value={enquiryPhone}
+                  onChange={(e) => setEnquiryPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors"
+                  placeholder="10-digit number"
+                />
+              </div>
+              <div className="bg-background p-8">
+                <label className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground block mb-4">Space</label>
+                <select
+                  value={enquiryService}
+                  onChange={(e) => setEnquiryService(e.target.value)}
+                  className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors appearance-none cursor-pointer"
+                >
+                  <option className="bg-background">Podcast Studio</option>
                   <option className="bg-background">Green Screen</option>
-                  <option className="bg-background">Photography</option>
-                  <option className="bg-background">Videography</option>
+                  <option className="bg-background">Photoshoot Room</option>
                 </select>
               </div>
-              <div className="bg-background p-8">
-                <label className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground block mb-4">Preferred Date</label>
-                <input required type="date" className="bg-transparent border-none outline-none w-full text-lg font-heading italic focus:text-primary transition-colors cursor-pointer" />
+              <div className="bg-background p-8 md:col-span-2">
+                <label className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground block mb-4">Preferred Date &amp; Time</label>
+                <DateTimePicker
+                  value={enquiryDateTime}
+                  onChange={setEnquiryDateTime}
+                  onSelectedDayChange={setEnquiryDay}
+                  bookedTimes={enquiryBookedTimes}
+                  name="preferredDateTime"
+                />
               </div>
               <div className="bg-background p-8 md:col-span-2 text-center py-20 border-t border-border">
                 <p className="text-xs text-muted-foreground uppercase tracking-[0.2em] mb-4">Initial Enquiry</p>
-                <Button className="rounded-none px-12 py-8 bg-primary text-background hover:bg-white transition-all duration-500 uppercase tracking-[0.5em] text-xs font-bold w-full md:w-auto">
-                  Dispatch Request
+                {submitError && (
+                  <p className="text-xs text-red-400 tracking-wide mb-4">{submitError}</p>
+                )}
+                <Button type="submit" disabled={submitting} className="rounded-none px-12 py-8 bg-primary text-background hover:bg-white transition-all duration-500 uppercase tracking-[0.5em] text-xs font-bold w-full md:w-auto disabled:opacity-50">
+                  {submitting ? "Dispatching..." : "Dispatch Request"}
                 </Button>
               </div>
             </form>
