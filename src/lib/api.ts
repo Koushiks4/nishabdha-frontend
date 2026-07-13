@@ -545,4 +545,40 @@ export const studioBookingApi = {
   },
 };
 
+// ============================================
+// SITE SETTINGS (landing page configuration)
+// ============================================
+
+export interface ShopCategory {
+  label: string;
+  category: string;
+}
+
+const DEFAULT_SHOP_CATEGORIES: ShopCategory[] = [
+  { label: 'Acoustic Panels', category: 'Acoustic Panels' },
+  { label: 'Wall Art', category: 'Wall Art' },
+  { label: 'Black & White', category: 'Black & White' },
+  { label: 'Abstract', category: 'Abstract' },
+];
+
+export const settingsApi = {
+  /**
+   * Fetch the configurable Shop/Gallery categories. Falls back to defaults on error.
+   */
+  async getShopCategories(): Promise<ShopCategory[]> {
+    try {
+      const response = await apiClient.get<ApiResponse<{ value: { categories: ShopCategory[] } | null }>>(
+        '/api/settings/shop_categories'
+      );
+      const categories = response.data?.data?.value?.categories;
+      if (Array.isArray(categories) && categories.length > 0) {
+        return categories.filter((c) => c && c.label && c.category);
+      }
+      return DEFAULT_SHOP_CATEGORIES;
+    } catch {
+      return DEFAULT_SHOP_CATEGORIES;
+    }
+  },
+};
+
 export default apiClient;

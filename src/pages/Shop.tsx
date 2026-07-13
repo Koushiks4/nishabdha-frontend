@@ -1,33 +1,37 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
-import { ChevronDown, Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { FramedArt } from "@/components/FramedArt";
-import { productApi, type Product } from "../lib/api";
+import { productApi, settingsApi, type Product, type ShopCategory } from "../lib/api";
 import SEO from "@/components/SEO";
 
-const categoryMap = {
-  "All": undefined,
-  "Acoustic Panels": "Acoustic Panels",
-  "Wall Art": "Wall Art",
-  "Black & White": "Black & White",
-  "Abstract": "Abstract",
-} as const;
-
-const categories = Object.keys(categoryMap);
+const ALL_TAB = "All";
 
 export default function Shop() {
-  const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [categories, setCategories] = useState<ShopCategory[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>(ALL_TAB);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Load configurable categories from the backend once.
+  useEffect(() => {
+    settingsApi.getShopCategories().then(setCategories);
+  }, []);
+
+  // Tabs shown to the visitor: an implicit "All" plus the configured categories.
+  const tabs = [ALL_TAB, ...categories.map((c) => c.label)];
 
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       setError(null);
       try {
-        const categoryFilter = categoryMap[activeCategory as keyof typeof categoryMap];
+        const categoryFilter =
+          activeCategory === ALL_TAB
+            ? undefined
+            : categories.find((c) => c.label === activeCategory)?.category;
         const data = await productApi.getAll({
           type: 'ARTWORK',
           category: categoryFilter,
@@ -42,7 +46,7 @@ export default function Shop() {
     };
 
     fetchProducts();
-  }, [activeCategory]);
+  }, [activeCategory, categories]);
 
   const formatPrice = (price: number) => `₹${price.toLocaleString('en-IN')}`;
 
@@ -63,7 +67,7 @@ export default function Shop() {
           </div>
           
           <div className="flex flex-wrap gap-x-12 gap-y-6 border-b border-border pb-4 w-full md:w-auto">
-            {categories.map((cat) => (
+            {tabs.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
