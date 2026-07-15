@@ -17,7 +17,9 @@ import {
   ArrowRight,
   ShoppingBag,
   Truck,
-  Shield
+  Shield,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { addressApi, orderApi, type Address as ApiAddress } from '../lib/api';
 import { load } from '@cashfreepayments/cashfree-js';
@@ -45,6 +47,9 @@ export default function Checkout() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [deletingAddress, setDeletingAddress] = useState<Address | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -101,7 +106,41 @@ export default function Checkout() {
     }
   };
 
-  const handleAddAddress = async (e: React.FormEvent<HTMLFormElement>) => {
+  const emptyAddressForm = {
+    fullName: '',
+    phone: '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    isDefault: false,
+  };
+
+  const resetAddressForm = () => {
+    setIsAddingNew(false);
+    setEditingAddressId(null);
+    setNewAddress(emptyAddressForm);
+    setError('');
+  };
+
+  const startEditAddress = (addr: Address) => {
+    setEditingAddressId(addr.id);
+    setIsAddingNew(true);
+    setError('');
+    setNewAddress({
+      fullName: addr.fullName,
+      phone: addr.phone,
+      addressLine1: addr.addressLine1,
+      addressLine2: addr.addressLine2 || '',
+      city: addr.city,
+      state: addr.state,
+      postalCode: addr.pincode || addr.postalCode || '',
+      isDefault: addr.isDefault,
+    });
+  };
+
+  const handleSaveAddress = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -120,25 +159,39 @@ export default function Checkout() {
         isDefault: newAddress.isDefault,
       };
 
-      const createdAddress = await addressApi.create(addressData);
+      if (editingAddressId) {
+        const updated = await addressApi.update(editingAddressId, addressData);
+        setAddresses((prev) => prev.map((a) => (a.id === editingAddressId ? updated : a)));
+        setSelectedAddressId(updated.id);
+      } else {
+        const createdAddress = await addressApi.create(addressData);
+        setAddresses((prev) => [...prev, createdAddress]);
+        setSelectedAddressId(createdAddress.id);
+      }
 
-      setAddresses([...addresses, createdAddress]);
-      setSelectedAddressId(createdAddress.id);
-      setIsAddingNew(false);
-      setNewAddress({
-        fullName: '',
-        phone: '',
-        addressLine1: '',
-        addressLine2: '',
-        city: '',
-        state: '',
-        postalCode: '',
-        isDefault: false,
-      });
+      resetAddressForm();
     } catch (err: any) {
       setError(err.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAddress = async () => {
+    if (!deletingAddress) return;
+    setIsDeleting(true);
+    setError('');
+    try {
+      await addressApi.delete(deletingAddress.id);
+      setAddresses((prev) => prev.filter((a) => a.id !== deletingAddress.id));
+      if (selectedAddressId === deletingAddress.id) {
+        setSelectedAddressId('');
+      }
+      setDeletingAddress(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete address');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -262,8 +315,8 @@ export default function Checkout() {
     0
   );
 
-  const shipping = 0;
-  const tax = 0;
+  const shipping: number = 0;
+  const tax: number = 0;
   const total = subtotal + shipping + tax;
 
   if (isLoading) {
@@ -395,10 +448,17 @@ export default function Checkout() {
                         transition={{ delay: index * 0.05 }}
                         className="group"
                       >
-                        <button
-                          type="button"
+                        <div
+                          role="button"
+                          tabIndex={0}
                           onClick={() => setSelectedAddressId(addr.id)}
-                          className={`relative w-full border transition-all duration-200 text-left ${
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedAddressId(addr.id);
+                            }
+                          }}
+                          className={`relative w-full border transition-all duration-200 text-left cursor-pointer ${
                             selectedAddressId === addr.id
                               ? 'border-primary bg-primary/5 shadow-sm'
                               : 'border-border hover:border-primary/50 bg-secondary/10 hover:bg-secondary/20'
@@ -438,6 +498,32 @@ export default function Checkout() {
                                 <span className="font-medium text-foreground/80">{addr.phone}</span>
                               </div>
                             </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-4 pt-3 border-t border-border/30">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditAddress(addr);
+                                }}
+                                className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingAddress(addr);
+                                }}
+                                className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Delete
+                              </button>
+                            </div>
                           </div>
 
                           {/* Selection Indicator */}
@@ -448,7 +534,7 @@ export default function Checkout() {
                               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                             />
                           )}
-                        </button>
+                        </div>
                       </motion.div>
                     ))}
                   </div>
@@ -458,7 +544,7 @@ export default function Checkout() {
                   <motion.form
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    onSubmit={handleAddAddress}
+                    onSubmit={handleSaveAddress}
                     className="space-y-5"
                   >
                     <div className="grid grid-cols-2 gap-4">
@@ -566,6 +652,8 @@ export default function Checkout() {
                               <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
                               Saving...
                             </>
+                          ) : editingAddressId ? (
+                            'Update Address'
                           ) : (
                             'Save Address'
                           )}
@@ -574,10 +662,7 @@ export default function Checkout() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => {
-                          setIsAddingNew(false);
-                          setError('');
-                        }}
+                        onClick={resetAddressForm}
                         className="h-11 border-border text-xs uppercase tracking-wider"
                       >
                         Cancel
@@ -587,7 +672,12 @@ export default function Checkout() {
                 ) : (
                   <Button
                     variant="outline"
-                    onClick={() => setIsAddingNew(true)}
+                    onClick={() => {
+                      setEditingAddressId(null);
+                      setNewAddress(emptyAddressForm);
+                      setError('');
+                      setIsAddingNew(true);
+                    }}
                     className="w-full h-11 border-border border-dashed hover:border-primary/50 transition-colors group"
                   >
                     <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
@@ -744,6 +834,67 @@ export default function Checkout() {
           </motion.div>
         </div>
       </div>
+
+      {/* Delete Address Confirmation Modal */}
+      <AnimatePresence>
+        {deletingAddress && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeleting && setDeletingAddress(null)}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative z-10 w-full max-w-md border border-border bg-card p-8 space-y-6"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 border border-destructive/30 bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="w-5 h-5 text-destructive" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-display uppercase tracking-wider">Delete Address</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Are you sure you want to delete the address for{' '}
+                    <span className="text-foreground font-medium">{deletingAddress.fullName}</span>? This
+                    action cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDeletingAddress(null)}
+                  disabled={isDeleting}
+                  className="flex-1 h-11 border-border text-xs uppercase tracking-wider"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleDeleteAddress}
+                  disabled={isDeleting}
+                  className="flex-1 h-11 bg-destructive text-white hover:bg-destructive/90 text-xs uppercase tracking-wider"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
