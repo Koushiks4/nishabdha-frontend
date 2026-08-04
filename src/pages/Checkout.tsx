@@ -211,7 +211,10 @@ export default function Checkout() {
       const data = await response.json();
       const { orderNumber, cashfree } = data.data;
 
-      const cashfreeInstance = await load({ mode: 'sandbox' });
+      const cashfreeMode = import.meta.env.VITE_CASHFREE_ENVIRONMENT === 'production'
+        ? 'production'
+        : 'sandbox';
+      const cashfreeInstance = await load({ mode: cashfreeMode });
 
       const checkoutOptions = {
         paymentSessionId: cashfree.paymentSessionId,
